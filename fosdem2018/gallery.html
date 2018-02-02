@@ -1,0 +1,54 @@
+<!-- How to use this:
+curl -O https://code.angularjs.org/1.6.7/angular.min.js
+swift post -r ".r:*,.rlistings" containername
+swift upload containername index.html
+swift upload containername angular.min.js
+# Upload a few images with the prefix "img" and optionally a custom metadata header, for example:
+swift upload containername -H "X-Object-Meta-Caption: something" -H "X-Object-Meta-Title: title" img_123.jpg
+# Now open the index file in your browser: http://<swift proxy IP:port>/v1/AUTH_test/containername/index.html
+-->
+<html ng-app="gallery">
+    <head>
+        <meta charset="utf-8"/>
+        <script src="angular.min.js"></script>
+        <script>
+            var app = angular.module('gallery', []);
+
+            app.controller('mainController', function($scope, $http, $filter, $location, $anchorScroll) {
+                var index = 0;
+                var imgs = [];
+                var base_url = $location.absUrl();
+                base_url = base_url.substr(0, base_url.lastIndexOf('/'));
+
+                $http.get(base_url + "?prefix=img").then(
+                    function(response) {
+                        imgs = response.data;
+                        showImage(index);
+                    }
+                );
+
+                var showImage = function() {
+                    $scope.img = base_url + "/" + imgs[index].name;
+                    $http.head($scope.img).then(
+                        function(response) {
+                            $scope.headers = response.headers();
+                        }
+                    );
+                }
+
+                $scope.keypress = function(keyEvent) {
+                    if (keyEvent.keyCode === 37) {if (index > 0) {index--;} showImage();}
+                    if (keyEvent.keyCode === 39) {if (index < imgs.length-1) {index++;} showImage();}
+                }
+            });
+        </script>
+    </head>
+
+    <body ng-controller="mainController" ng-keydown="keypress($event)">
+        <center>
+            <img ng-src="{{ img }}" title="{{ img }}">
+            <br />{{ headers['x-object-meta-title'] }}
+            <br />{{ headers['x-object-meta-caption'] }}
+        </center>
+   </body>
+</html>
